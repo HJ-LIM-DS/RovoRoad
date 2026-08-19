@@ -19,44 +19,34 @@
 
 ## 2. 핵심 아키텍처 및 설계 원리 (Model Architecture)
 
-`
-+-----------------------------------------------------------------------------------+
-|                                 ROVOROAD Pipeline                                 |
-+-----------------------------------------------------------------------------------+
-                                          |
-                                   [ Input Image ] (640x640x3)
-                                          |
-                                          v
-+-----------------------------------------------------------------------------------+
-| Backbone: Modified YOLO11m + CBAM Attention Stage                                 |
-| - P3 (Small Object Feature)   --> [ CBAM (Channel + Spatial Attention) ]          |
-| - P4 (Medium Object Feature)  --> [ CBAM (Channel + Spatial Attention) ]          |
-| - P5 (Large Object Feature)   --> [ CBAM (Channel + Spatial Attention) ]          |
-+-----------------------------------------------------------------------------------+
-                                          |
-                                          v
-+-----------------------------------------------------------------------------------+
-| Neck: Weighted Bi-directional Feature Pyramid Network (BiFPN)                     |
-| - Top-down & Bottom-up 양방향 특성 융합                                           |
-| - Skip Connection (동일 해상도 직접 연결)                                         |
-| - Fast Normalized Fusion (학습 가능한 파라미터 기반 가중합)                       |
-+-----------------------------------------------------------------------------------+
-                                          |
-                                          v
-+-----------------------------------------------------------------------------------+
-| Head & Optimization: Detect Head & ONNX Runtime Engine                            |
-| - Decoupled Detection Head (Bounding Box Regression & Classification)            |
-| - Lossless ONNX OpSet 17 Export (Cosine Similarity 1.0)                           |
-+-----------------------------------------------------------------------------------+
-`
+ROVOROAD 탐지 프레임워크는 입력 영상 전처리부터 최종 결함 검출 및 경량화 배포까지 총 4단계의 유기적인 파이프라인으로 구성되어 있습니다.
 
-### 2.1 CBAM (Convolutional Block Attention Module)
-- **Channel Attention**: '무엇(What)'이 중요한 특징인지 판별하기 위해 Global Average Pooling과 Max Pooling을 결합하고 공유 MLP를 통해 채널 간 중요도를 동적으로 재조정합니다.
-- **Spatial Attention**: '어디(Where)'에 포트홀이 위치하는지 집중하기 위해 채널 축 압축 후 7x7 합성곱 연산으로 도로 배경 노이즈를 억제하고 결함 영역의 공간적 가중치 맵을 생성합니다.
+### 2.1 전체 파이프라인 흐름 (End-to-End Pipeline Flow)
 
-### 2.2 BiFPN (Bidirectional Feature Pyramid Network)
-- 기존 YOLO11m의 PANet(Path Aggregation Network) 구조를 개선하여, 상향식(Bottom-up)과 하향식(Top-down) 특성을 반복 융합합니다.
-- 단순 Concat/Add 대신 **Fast Normalized Fusion** 기법을 적용하여 서로 다른 해상도 레벨의 기여도를 모델이 스스로 학습합니다:
+1. **입력 영상 전처리 단계 (Input Processing)**:
+   - 주행 중인 로봇 및 차량 카메라로부터 640x640x3 해상도의 RGB 도로 주행 영상을 입력받아 정규화 및 색상 공간 변환을 수행합니다.
+
+2. **백본 특징 추출 및 어텐션 단계 (Backbone with CBAM Attention)**:
+   - YOLO11m의 계층적 컨볼루션 구조를 통해 P3(소형), P4(중형), P5(대형) 해상도 레벨의 특징 맵을 순차적으로 추출합니다.
+   - 각 계층의 C3k2 블록 후단에 CBAM(Channel & Spatial Attention) 모듈을 결합합니다. 이를 통해 그림자, 젖은 노면, 타이어 자국 등 도로 표면의 노이즈를 억제하고 실제 도로 파손(포트홀) 영역의 고유 텍스처와 경계선 특징만을 선별적으로 증폭합니다.
+
+3. **양방향 다중 스케일 특징 융합 단계 (BiFPN Neck)**:
+   - 기존의 단순 단방향 결합(PANet)을 대체하여, 상향식(Bottom-up)과 하향식(Top-down) 양방향 특성 흐름을 동시에 구성합니다.
+   - 동일 해상도 간 직접 연결(Skip Connection)을 추가하여 계층을 거치며 손실될 수 있는 원본 해상도의 디테일 정보를 보존합니다.
+   - 단순 합산이나 Concat 대신 Fast Normalized Fusion 기법을 적용하여 모델이 학습을 통해 각 스케일별 기여도 가중치를 스스로 최적화하도록 유도합니다.
+
+4. **검출 헤드 및 고속 엣지 배포 단계 (Detection Head & Deployment Engine)**:
+   - 분리형 검출 헤드(Decoupled Head)를 통해 포트홀의 정확한 위치 좌표(Bounding Box Regression)와 결함 신뢰도 점수(Classification)를 각각 독립적으로 계산합니다.
+   - 최종 학습 모델은 ONNX(OpSet 17) 표준 포맷으로 무손실 변환(코사인 유사도 1.0)되어 임베디드 및 엣지 디바이스에서 실시간 추론이 가능하도록 최적화되었습니다.
+
+### 2.2 핵심 모듈 상세 설계 원리
+
+- **CBAM (Convolutional Block Attention Module)**:
+  - 채널 어텐션(Channel Attention): Global Average Pooling과 Max Pooling을 결합하고 공유 MLP를 거쳐 도로 환경에서 유의미한 채널의 중요도를 동적으로 재조정합니다.
+  - 공간 어텐션(Spatial Attention): 채널 축 기준의 압축 연산과 7x7 합성곱을 통해 '어느 위치'에 포트홀이 존재하는지 도로 배경 노이즈를 제거하고 결함 영역의 2차원 공간 가중치 맵을 생성합니다.
+
+- **BiFPN (Bidirectional Feature Pyramid Network)**:
+  - 고유한 양방향 특성 융합과 함께 학습 가능한 가중 파라미터 기반의 Fast Normalized Fusion 연산을 수행합니다:
 
 \text{Output} = \sum_{i} \frac{w_i}{\epsilon + \sum_{j} w_j} \cdot I_i \quad (w_i \ge 0)
 
