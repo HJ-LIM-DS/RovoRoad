@@ -1,0 +1,5 @@
+﻿name,weight_path,params_m,gflops,precision,recall,mAP50,mAP50-95,latency_ms,fps,std_ms
+YOLO11m-Baseline,weights/yolo11m_baseline_best.pt,20.03,67.8,0.529895186,0.371335505,0.378673443,0.184524983,21.4,46.7,4.21
+YOLO11m-CBAM,weights/yolo11m_cbam_best.pt,20.1,68,0.541812026,0.359391965,0.37283827,0.184047431,22.68,44.1,0.53
+YOLO11m-BiFPN,weights/yolo11m_bifpn_best.pt,20.23,67.6,0.572017308,0.340933768,0.368280213,0.180726025,23.32,42.9,4.2
+YOLO11m-Full,weights/yolo11m_full_best.pt,20.91,140,0.584512,0.358306189,0.393469388,0.208016293,37.11,26.9,0.58

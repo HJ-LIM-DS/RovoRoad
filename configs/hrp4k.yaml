@@ -1,0 +1,17 @@
+# HRP4K 포트홀 탐지 데이터셋 설정 파일 (Ultralytics YOLO 전용)
+# 주석: 데이터셋의 루트 경로 및 학습/검증/테스트 이미지 위치, 클래스 정보를 정의합니다.
+
+# 데이터셋 루트 디렉터리 경로
+path: E:/ROVOROAD/datasets/HRP4K
+
+# 학습, 검증, 테스트 이미지 폴더 상대 경로 (path 기준)
+train: train/images
+val: valid/images
+test: test/images
+
+# 클래스 수 (포트홀 단일 클래스 = 1개)
+nc: 1
+
+# 클래스 ID 및 이름 매핑
+names:
+  0: pothole

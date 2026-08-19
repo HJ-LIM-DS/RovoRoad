@@ -1,0 +1,83 @@
+﻿# ==========================================
+# ROVOROAD - Pothole Detection .gitignore
+# ==========================================
+
+# 1. Python & Byte-compiled files
+__pycache__/
+*.py[cod]
+*.class
+*.so
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 2. Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# 3. IDE & OS Generated Files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+.agents/
+
+# 4. API Keys & Sensitive Data
+*API_KEY*
+*.env
+*.key
+*.pem
+*.secret
+
+# 5. Large Datasets (HRP4K, Crackseg)
+datasets/
+*.zip
+*.tar
+*.tar.gz
+*.7z
+
+# 6. Model Weights & Binaries (.pt, .onnx, .engine)
+*.pt
+*.pth
+*.onnx
+*.engine
+weights/*.pt
+weights/*.onnx
+weights/*.engine
+!weights/.gitkeep
+
+# 7. Experiment Tracking & Run Outputs
+wandb/
+*.wandb
+runs/rovoroad-pothole/
+runs/inference/
+runs/*.mp4
+*.mp4
+*.avi
+*.mkv
+
+# Include evaluation summary reports & figures in repo
+!runs/evaluation_summary.csv
+!runs/evaluation_summary.md
+!runs/evaluation_comparison.png
+!runs/onnx_export_summary.csv
+!runs/onnx_export_summary.md

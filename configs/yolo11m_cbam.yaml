@@ -1,0 +1,38 @@
+# ROVOROAD Pothole Detection - YOLO11m + CBAM Model Config
+# C2f/C3k2 피처 추출 단계 및 P3/P4/P5 레벨에 CBAM Attention을 적용한 모델 설정
+
+nc: 1
+scales:
+  m: [0.50, 1.00, 512]
+
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv, [64, 3, 2]]          # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]         # 1-P2/4
+  - [-1, 2, C3k2, [256, False, 0.25]]   # 2-P3/8
+  - [-1, 1, CBAM, [256, 16, 7]]        # 3-CBAM Attention (P3) (args: c1=256, ratio=16, kernel_size=7)
+  - [-1, 1, Conv, [256, 3, 2]]         # 4-P3/8 -> P4/16
+  - [-1, 2, C3k2, [512, False, 0.25]]   # 5-P4/16
+  - [-1, 1, CBAM, [512, 16, 7]]        # 6-CBAM Attention (P4) (args: c1=512, ratio=16, kernel_size=7)
+  - [-1, 1, Conv, [512, 3, 2]]         # 7-P4/16 -> P5/32
+  - [-1, 2, C3k2, [512, True]]         # 8-P5/32
+  - [-1, 1, Conv, [1024, 3, 2]]        # 9
+  - [-1, 2, C3k2, [1024, True]]        # 10
+  - [-1, 1, SPPF, [1024, 5]]           # 11
+  - [-1, 2, C2PSA, [1024]]             # 12
+  - [-1, 1, CBAM, [1024, 16, 7]]       # 13-CBAM Attention (P5/P6) (args: c1=1024, ratio=16, kernel_size=7)
+
+head:
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 14
+  - [[-1, 8], 1, Concat, [1]]                   # 15
+  - [-1, 2, C3k2, [512, False]]                # 16
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 17
+  - [[-1, 6], 1, Concat, [1]]                   # 18 (P4 CBAM과 Concat)
+  - [-1, 2, C3k2, [256, False]]                # 19 (P3/8 Head output)
+  - [-1, 1, Conv, [256, 3, 2]]                  # 20
+  - [[-1, 16], 1, Concat, [1]]                  # 21
+  - [-1, 2, C3k2, [512, False]]                # 22 (P4/16 Head output)
+  - [-1, 1, Conv, [512, 3, 2]]                  # 23
+  - [[-1, 13], 1, Concat, [1]]                  # 24 (P5 CBAM과 Concat)
+  - [-1, 2, C3k2, [1024, True]]                 # 25 (P5/32 Head output)
+  - [[19, 22, 25], 1, Detect, [nc]]             # 26 Detect

@@ -1,0 +1,5 @@
+﻿실험,모델명,가중치 파일,ONNX 파일,ONNX 용량 (MB),그래프 무결성,최대 절대 오차 (Max Abs Diff),평균 절대 오차 (Mean Abs Diff),코사인 유사도 (Cosine Sim),수치 동등성 판정,PyTorch Latency (ms),PyTorch FPS,ORT Latency (ms),ORT FPS,가속 비율 (Speedup)
+Exp 1,YOLO11m Baseline,yolo11m_baseline_best.pt,yolo11m_baseline_best.onnx,76.7,정상(Valid),4.27E-04,1.38E-05,1,합격,492.36,2,427.49,2.3,1.15x
+Exp 2,YOLO11m + CBAM,yolo11m_cbam_best.pt,yolo11m_cbam_best.onnx,77,정상(Valid),2.59E-04,1.01E-05,1.00000012,합격,560.8,1.8,439.51,2.3,1.28x
+Exp 3,YOLO11m + BiFPN,yolo11m_bifpn_best.pt,yolo11m_bifpn_best.onnx,77.46,정상(Valid),7.78E-04,2.00E-05,1,합격,491.99,2,404.34,2.5,1.22x
+Exp 4,YOLO11m + CBAM + BiFPN (Full),yolo11m_full_best.pt,yolo11m_full_best.onnx,80.56,정상(Valid),1.98E-04,4.55E-06,1,합격,1019.69,1,1050.32,1,0.97x
