@@ -48,7 +48,7 @@ ROVOROAD 탐지 프레임워크는 입력 영상 전처리부터 최종 결함 �
 - **BiFPN (Bidirectional Feature Pyramid Network)**:
   - 고유한 양방향 특성 융합과 함께 학습 가능한 가중 파라미터 기반의 Fast Normalized Fusion 연산을 수행합니다:
 
-\text{Output} = \sum_{i} \frac{w_i}{\epsilon + \sum_{j} w_j} \cdot I_i \quad (w_i \ge 0)
+$$\text{Output} = \sum_{i} \frac{w_i}{\epsilon + \sum_{j} w_j} \cdot I_i \quad (w_i \ge 0)$$
 
 ---
 
@@ -95,76 +95,83 @@ PyTorch 가중치를 산업 표준 고속 추론 포맷인 **ONNX(OpSet 17)**로
 
 실제 주행 환경 테스트 이미지 셋에 대해 실시간 HUD 오버레이(지연시간, 실시간 FPS, 탐지 개수)가 적용된 1080p 고화질 비교 영상을 자동 생성하는 파이프라인을 구축하였습니다.
 
-- **1:1 Side-by-Side 비교 영상**: uns/demo_original_vs_full.mp4 (원본 영상 vs Full 제안 모델 직접 비교)
-- **4-Way 2x2 Grid 종합 분석 영상**: uns/demo_4way_comparison.mp4 (4개 모델 동시 추론 비교)
+- **1:1 Side-by-Side 비교 영상**: `runs/demo_original_vs_full.mp4` (원본 영상 vs Full 제안 모델 직접 비교)
+- **4-Way 2x2 Grid 종합 분석 영상**: `runs/demo_4way_comparison.mp4` (4개 모델 동시 추론 비교)
 - **모듈별 비교 영상**:
-  - uns/demo_original_vs_baseline.mp4 (Baseline)
-  - uns/demo_original_vs_cbam.mp4 (+CBAM)
-  - uns/demo_original_vs_bifpn.mp4 (+BiFPN)
+  - `runs/demo_original_vs_baseline.mp4` (Baseline)
+  - `runs/demo_original_vs_cbam.mp4` (+CBAM)
+  - `runs/demo_original_vs_bifpn.mp4` (+BiFPN)
 
 ---
 
 ## 6. 프로젝트 디렉토리 구조 (Directory Structure)
 
-`
-ROVOROAD/
-├── configs/                      # 모델 및 데이터셋 설정 파일
-│   ├── hrp4k.yaml               # HRP4K 데이터셋 경로 및 클래스 정의
-│   ├── yolo11m_baseline.yaml    # Baseline 모델 구조 설정
-│   ├── yolo11m_cbam.yaml        # +CBAM 결합 모델 설정
-│   ├── yolo11m_bifpn.yaml       # +BiFPN 결합 모델 설정
-│   └── yolo11m_full.yaml        # +CBAM +BiFPN 통합 모델 설정
-├── model/                        # 핵심 신경망 커스텀 모듈
-│   ├── __init__.py              # 모듈 초기화 및 심볼 익스포트
-│   ├── cbam.py                  # CBAM (Channel & Spatial Attention)
-│   ├── bifpn.py                 # BiFPN (Weighted Fusion & Blocks)
-│   └── register.py              # Ultralytics 엔진 모듈 동적 등록기
-├── utils/                        # 데이터, 평가, 시각화 유틸리티
-│   ├── __init__.py              # 패키지 초기화
-│   ├── dataset.py               # 라벨 변환 및 데이터셋 통계 검증
-│   ├── metrics.py               # mAP, Precision, Recall 종합 계산기
-│   └── visualize.py             # HUD 패널, 1:1 및 2x2 비디오 렌더러
-├── demo/                         # 데모 제작 도구
-│   └── make_demo_video.py       # ONNX 기반 고화질 비교 영상 생성기
-├── runs/                         # 평가 지표 및 벤치마크 보고서
-│   ├── evaluation_summary.csv   # 4종 모델 정량 평가 수치 (CSV)
-│   ├── evaluation_summary.md    # 4종 모델 정량 평가 요약 (MD)
-│   ├── evaluation_comparison.png# 4종 모델 성능 비교 차트
-│   ├── onnx_export_summary.csv  # ONNX 변환 수치 동등성 리포트 (CSV)
-│   └── onnx_export_summary.md   # ONNX 변환 수치 동등성 리포트 (MD)
-├── weights/                      # 모델 가중치 디렉토리 (.gitkeep 유지)
-├── train.py                     # 4종 Ablation 모델 학습 진입점
-├── evaluate.py                  # Test 셋 벤치마크 및 지표 자동 산출기
-├── export.py                    # ONNX 무손실 변환 및 수치 검증기
-├── inference.py                 # ONNX Runtime 기반 고속 단일/배치 추론기
-├── upload_wandb.py              # W&B 실험 대시보드 로거
-├── requirements.txt             # 의존성 패키지 명세서
-├── .gitignore                   # Git 저장소 제외 규칙
-└── README.md                    # 프로젝트 종합 기술 문서
-`
+ROVOROAD 프로젝트는 관심사 분리(Separation of Concerns) 원칙에 따라 모델, 유틸리티, 설정, 파이프라인이 블록 단위로 모듈화되어 있습니다.
+
+### 6.1 핵심 컴포넌트 구조
+
+- **`configs/`**: 모델 아키텍처 및 데이터셋 설정 파일
+  - `hrp4k.yaml`: HRP4K 데이터셋 경로 및 단일 클래스(Pothole) 정의
+  - `yolo11m_baseline.yaml`: Baseline 모델 구조 설정
+  - `yolo11m_cbam.yaml`: Backbone에 CBAM Attention을 결합한 모델 설정
+  - `yolo11m_bifpn.yaml`: Neck을 BiFPN으로 교체한 모델 설정
+  - `yolo11m_full.yaml`: CBAM과 BiFPN을 동시 통합한 최종 제안 모델 설정
+- **`model/`**: 신경망 핵심 커스텀 모듈
+  - `cbam.py`: 채널 및 공간 어텐션(CBAM) 구현체
+  - `bifpn.py`: 양방향 특징 피라미드 및 Fast Normalized Fusion 구현체
+  - `register.py`: Ultralytics 프레임워크 엔진에 커스텀 모듈을 동적 등록하는 래퍼
+- **`utils/`**: 데이터 처리, 지표 평가 및 시각화 도구
+  - `dataset.py`: 데이터셋 무결성 검증 및 라벨 통계 유틸리티
+  - `metrics.py`: mAP@50, mAP@50-95, Precision, Recall 종합 계산기
+  - `visualize.py`: 반투명 HUD 정보 패널, 1:1 Side-by-Side 및 4-Way 렌더러
+- **`demo/`**: 시연 및 데모 영상 제작
+  - `make_demo_video.py`: ONNX Runtime 기반 고화질 비교 영상 자동 생성기
+- **`runs/`**: 실험 벤치마크 및 리포트 산출물
+  - `evaluation_summary.csv` / `.md`: 4종 모델 정량 평가 수치 보고서
+  - `evaluation_comparison.png`: 4종 모델 성능 비교 차트
+  - `onnx_export_summary.csv` / `.md`: ONNX 무손실 변환 검증 결과 보고서
+- **루트 실행 스크립트 (Root Scripts)**:
+  - `train.py`: 4종 모델 순차/선택 학습 진입점
+  - `evaluate.py`: Test 셋 벤치마크 일괄 평가기
+  - `export.py`: ONNX 표준 변환 및 수치 동등성 검증기
+  - `inference.py`: ONNX Runtime 기반 고속 단일/배치 추론기
+  - `upload_wandb.py`: WandB 실험 대시보드 로깅 스크립트
+
+### 6.2 주요 모듈 역할 요약
+
+| 디렉토리 / 파일 | 주요 역할 및 기능 | 비고 |
+|:---|:---|:---|
+| `configs/` | 데이터셋 및 4종 모델 구조 YAML 관리 | YAML 기반 재현성 확보 |
+| `model/` | CBAM, BiFPN 커스텀 연산자 정의 및 등록 | PyTorch 커스텀 모듈 |
+| `utils/` | 데이터 무결성 검증, 평가 지표 계산, HUD 렌더링 | 재사용 가능한 유틸리티 |
+| `demo/` | ONNX 엔진 기반 1:1 및 4-Way 비교 비디오 렌더링 | 고화질 데모 생성 |
+| `train.py` | 하이퍼파라미터 일괄 제어 및 모델 학습 진입점 | CLI 인터페이스 제공 |
+| `evaluate.py` | 4종 모델 지표 산출 및 리포트/차트 자동 생성 | 자동화 벤치마크 |
+| `export.py` | ONNX OpSet 17 변환 및 코사인 유사도 검증 | 경량화 및 최적화 |
+| `inference.py` | ONNX Runtime 기반 고속 추론 및 시각화 저장 | 단일/배치 CLI 지원 |
 
 ---
 
 ## 7. 실행 및 재현 가이드 (Quick Start Guide)
 
 ### 7.1 환경 설치 (Installation)
-`ash
+```bash
 # 가상환경 생성 및 활성화
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
 # 필수 패키지 설치
 pip install -r requirements.txt
-`
+```
 
 ### 7.2 데이터셋 준비 (Dataset Preparation)
-HRP4K 데이터셋을 datasets/HRP4K/ 하위에 배치한 후, 아래 명령어로 통계를 확인하고 라벨을 준비합니다:
-`ash
+HRP4K 데이터셋을 `datasets/HRP4K/` 하위에 배치한 후, 아래 명령어로 통계를 확인하고 라벨을 준비합니다:
+```bash
 python -c "from utils.dataset import check_dataset_health; check_dataset_health()"
-`
+```
 
 ### 7.3 모델 학습 (Ablation Training)
-`ash
+```bash
 # 1. Baseline 학습
 python train.py --model baseline --epochs 100 --batch 16
 
@@ -176,22 +183,22 @@ python train.py --model bifpn --epochs 100 --batch 16
 
 # 4. 제안 Full 모델 (CBAM + BiFPN) 학습
 python train.py --model full --epochs 100 --batch 16
-`
+```
 
 ### 7.4 정량 평가 및 벤치마크 산출 (Evaluation)
-`ash
+```bash
 # 4개 모델 일괄 평가 및 요약 보고서/차트 생성
 python evaluate.py --all
-`
+```
 
 ### 7.5 ONNX 모델 변환 및 수치 동등성 검증 (Export)
-`ash
+```bash
 # Full 모델 변환 및 수치 검증
 python export.py --model full --opset 17 --check
-`
+```
 
 ### 7.6 고속 추론 및 데모 영상 제작 (Inference & Demo Video)
-`ash
+```bash
 # 단일 이미지 고속 추론
 python inference.py --weights weights/yolo11m_full_best.onnx --source datasets/HRP4K/test/images/30000.jpg
 
@@ -200,7 +207,7 @@ python demo/make_demo_video.py --mode side-by-side --weights weights/yolo11m_ful
 
 # 4-Way 2x2 Grid 4종 모델 동시 비교 영상 제작
 python demo/make_demo_video.py --mode 4way --output runs/demo_4way_comparison.mp4 --duration 3.0 --fps 30
-`
+```
 
 ---
 
